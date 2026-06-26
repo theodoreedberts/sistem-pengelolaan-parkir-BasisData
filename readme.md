@@ -28,31 +28,31 @@ Berikut adalah rancangan struktural antarentitas (Area Parkir, Kendaraan, Member
 
 Sistem ini berdiri di atas 8 entitas utama dengan aturan data yang ketat:
 
-1. **Area Parkir (`Area_Parkir`)**: Mengatur zonasi (Mobil/Motor) dan batas total daya tampung armada[cite: 83, 85].
-2. **Jenis Tarif (`Jenis_Tarif`)**: Menyediakan acuan biaya per jam berdasarkan kategori (Reguler/Member/VIP) tanpa mengganggu logika aplikasi jika ada perubahan tarif[cite: 90, 91, 92].
-3. **Petugas (`Petugas`)**: Menyimpan data kredensial staf kasir/operator untuk menjaga akuntabilitas *audit trail*[cite: 94, 95].
-4. **Denda (`Denda`)**: Master data penalti (seperti tiket hilang, parkir sembarangan, atau menginap tanpa izin)[cite: 97, 98].
-5. **Member (`Member`)**: Melacak data validitas kontrak tenggang waktu keanggotaan pelanggan[cite: 100, 101, 102].
-6. **Kendaraan (`Kendaraan`)**: Entitas fisik armada (dibuat *nullable* pada `id_member` agar fleksibel untuk kendaraan non-member)[cite: 103, 104, 105, 152].
-7. **Transaksi (`Transaksi`)**: Log masuk-keluar kendaraan, lengkap dengan penanda status aktif dan bukti visual foto gerbang[cite: 108, 109, 110].
-8. **Pembayaran (`Pembayaran`)**: Bukti digital pelunasan finansial yang mengunci pembukuan akhir pendapatan[cite: 112, 113, 114].
+1. **Area Parkir (`Area_Parkir`)**: Mengatur zonasi (Mobil/Motor) dan batas total daya tampung armada.
+2. **Jenis Tarif (`Jenis_Tarif`)**: Menyediakan acuan biaya per jam berdasarkan kategori (Reguler/Member/VIP) tanpa mengganggu logika aplikasi jika ada perubahan tarif.
+3. **Petugas (`Petugas`)**: Menyimpan data kredensial staf kasir/operator untuk menjaga akuntabilitas *audit trail*.
+4. **Denda (`Denda`)**: Master data penalti (seperti tiket hilang, parkir sembarangan, atau menginap tanpa izin).
+5. **Member (`Member`)**: Melacak data validitas kontrak tenggang waktu keanggotaan pelanggan.
+6. **Kendaraan (`Kendaraan`)**: Entitas fisik armada (dibuat *nullable* pada `id_member` agar fleksibel untuk kendaraan non-member).
+7. **Transaksi (`Transaksi`)**: Log masuk-keluar kendaraan, lengkap dengan penanda status aktif dan bukti visual foto gerbang.
+8. **Pembayaran (`Pembayaran`)**: Bukti digital pelunasan finansial yang mengunci pembukuan akhir pendapatan.
 
 ---
 
 ## 🎭 Skenario Operasional Sistem
 
 ### 1. Pengunjung Reguler (Normal)
-* [cite_start]**Masuk**: Sistem memvalidasi plat nomor baru, jika belum ada maka data kendaraan disimpan ke tabel `Kendaraan` (`id_member IS NULL`)[cite: 24, 25]. [cite_start]Kemudian, data `Transaksi` dibuat dengan status `'Masuk'`[cite: 26].
-* **Keluar**: Mengubah status menjadi `'Selesai'`, mencatat `waktu_keluar`, menghitung durasi menggunakan fungsi `TIMESTAMPDIFF`, mengalikannya dengan biaya dari master tarif, lalu mencatat struk di tabel `Pembayaran`[cite: 28, 29, 30].
+* **Masuk**: Sistem memvalidasi plat nomor baru, jika belum ada maka data kendaraan disimpan ke tabel `Kendaraan` (`id_member IS NULL`). Kemudian, data `Transaksi` dibuat dengan status `'Masuk'`.
+* **Keluar**: Mengubah status menjadi `'Selesai'`, mencatat `waktu_keluar`, menghitung durasi menggunakan fungsi `TIMESTAMPDIFF`, mengalikannya dengan biaya dari master tarif, lalu mencatat struk di tabel `Pembayaran`.
 
 ### 2. Parkir Khusus Member
-* [cite_start]Sistem melakukan `JOIN` antara tabel `Kendaraan` dan `Member` untuk mengecek masa kedaluwarsa kartu[cite: 33, 34]. [cite_start]Jika valid, transaksi diarahkan ke skema tarif khusus member (tarif flat Rp 0,00 atau harga khusus member)[cite: 36, 38].
+* Sistem melakukan `JOIN` antara tabel `Kendaraan` dan `Member` untuk mengecek masa kedaluwarsa kartu. Jika valid, transaksi diarahkan ke skema tarif khusus member (tarif flat Rp 0,00 atau harga khusus member).
 
 ### 3. Pengunjung Terkena Denda
-* Jika terjadi pelanggaran, kolom `id_denda` pada tabel `Transaksi` diubah dari `NULL` menjadi ID sanksi yang sesuai (misal: `'D01'`)[cite: 41]. Total tagihan akhir dihitung otomatis via query: `(durasi * biaya_tarif) + nominal_denda`[cite: 44].
+* Jika terjadi pelanggaran, kolom `id_denda` pada tabel `Transaksi` diubah dari `NULL` menjadi ID sanksi yang sesuai (misal: `'D01'`). Total tagihan akhir dihitung otomatis via query: `(durasi * biaya_tarif) + nominal_denda`.
 
 ### 4. Pengecekan Kapasitas Penuh
-* Sebelum `INSERT` data transaksi baru pada area tertentu, sistem menjalankan agregasi `SELECT COUNT(id_transaksi) WHERE status_parkir = 'Masuk'`[cite: 47, 48]. Jika hasil hitung mencapai batas `kapasitas_total` area tersebut, sistem akan memblokir transaksi baru[cite: 50, 51].
+* Sebelum `INSERT` data transaksi baru pada area tertentu, sistem menjalankan agregasi `SELECT COUNT(id_transaksi) WHERE status_parkir = 'Masuk'`. Jika hasil hitung mencapai batas `kapasitas_total` area tersebut, sistem akan memblokir transaksi baru.
 
 ---
 
